@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # QueueCTL
 
 QueueCTL is a CLI-based background job queue system implemented in Java using the Spring Boot framework and Picocli.
@@ -101,3 +102,6 @@ To manually verify core flows:
 4. In another terminal, observe `status` and `list` commands as the fail-job retries and eventually enters DLQ.
 5. Stop the worker process (`Ctrl+C` or `queuectl worker stop`).
 6. Retry the DLQ job: `queuectl dlq retry fail-job` and start a worker again.
+=======
+# flam
+>>>>>>> 61482cd1c2f9880fb93642438677c7184be860dd
