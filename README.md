@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # QueueCTL
 
 QueueCTL is a CLI-based background job queue system implemented in Java using the Spring Boot framework and Picocli.
