@@ -1,107 +1,407 @@
 # QueueCTL
 
-QueueCTL is a CLI-based background job queue system implemented in Java using Spring Boot and Picocli.
+QueueCTL is a CLI-based background job queue system built using **Java**, **Spring Boot**, and **Picocli**. It provides reliable background job execution with support for multiple workers, persistent storage, automatic retries using exponential backoff, and a Dead Letter Queue (DLQ).
+
+---
 
 ## Features
-- Job execution in the background
-- Multiple worker threads
-- Persistent job storage using embedded H2 database
-- Retry mechanism with exponential backoff
+
+- CLI-based job management
+- Multiple concurrent workers
+- Persistent job storage using H2 Database
+- Automatic retry with exponential backoff
 - Dead Letter Queue (DLQ)
-- Configuration management for retries and backoff
+- Worker locking to prevent duplicate processing
+- Graceful worker shutdown
+- Runtime configuration management
+- Modular Spring Boot architecture
 
-## Setup Instructions
+---
 
-### Prerequisites
-- Java 17 or higher
+# Tech Stack
+
+- Java 17
+- Spring Boot 3.x
+- Spring Data JPA
+- H2 Database
+- Picocli
 - Maven
 
-### Build locally
-From the project root, run:
+---
 
-```bash
-./mvnw clean package -DskipTests
+# Project Structure
+
+```
+src
+├── main
+│   ├── java
+│   │   ├── commands
+│   │   ├── config
+│   │   ├── controller
+│   │   ├── model
+│   │   ├── repository
+│   │   ├── service
+│   │   └── QueueCtlApplication.java
+│   └── resources
+│       ├── application.properties
+│       └── static
+└── test
 ```
 
-On Windows, use:
+---
+
+# Prerequisites
+
+- Java 17+
+- Maven
+
+Verify installation
 
 ```bash
-mvnw.cmd clean package -DskipTests
+java --version
+mvn --version
 ```
 
-### Run locally
-After the build completes, run:
+---
+
+# Clone Repository
+
+```bash
+git clone https://github.com/Aditya-Bhardwaj022/flam.git
+
+cd flam
+```
+
+---
+
+# Build the Project
+
+Linux / macOS
+
+```bash
+./mvnw clean package
+```
+
+Windows
+
+```bash
+mvnw.cmd clean package
+```
+
+or
+
+```bash
+mvn clean package
+```
+
+After a successful build, Maven creates
+
+```
+target/queuectl-0.0.1-SNAPSHOT.jar
+```
+
+---
+
+# Run the Application
+
+Run the executable jar
 
 ```bash
 java -jar target/queuectl-0.0.1-SNAPSHOT.jar
 ```
 
-If the JAR name is different, use the exact file name inside `target/`.
+You can optionally create an alias
 
-### Optional alias
-For convenience, you can create an alias:
+Linux
 
 ```bash
 alias queuectl="java -jar target/queuectl-0.0.1-SNAPSHOT.jar"
 ```
 
-On Windows PowerShell, you can run the JAR directly using `java -jar ...`.
+Windows PowerShell
 
-## Usage Examples
+```powershell
+function queuectl {
+    java -jar target/queuectl-0.0.1-SNAPSHOT.jar $args
+}
+```
 
-### Enqueue a job
+---
+
+# CLI Commands
+
+## Enqueue Job
+
 ```bash
 queuectl enqueue '{"id":"job1","command":"echo Hello World"}'
+```
+
+Example
+
+```bash
 queuectl enqueue '{"id":"job2","command":"sleep 2"}'
+```
+
+Failed Job
+
+```bash
 queuectl enqueue '{"id":"job3","command":"exit 1"}'
 ```
 
-### Manage workers
-Start 3 workers:
+---
+
+## Start Workers
+
+Single Worker
+
+```bash
+queuectl worker start
+```
+
+Multiple Workers
+
 ```bash
 queuectl worker start --count 3
 ```
 
-Stop workers gracefully:
+---
+
+## Stop Workers
+
 ```bash
 queuectl worker stop
 ```
 
-### Check status and list jobs
+Workers finish the current job before shutting down.
+
+---
+
+## View Status
+
 ```bash
 queuectl status
+```
+
+Shows
+
+- Pending jobs
+- Processing jobs
+- Completed jobs
+- Failed jobs
+- Dead jobs
+- Active workers
+
+---
+
+## List Jobs
+
+```bash
 queuectl list
+```
+
+Filter by state
+
+```bash
 queuectl list --state pending
+```
+
+```bash
+queuectl list --state processing
+```
+
+```bash
+queuectl list --state completed
+```
+
+```bash
 queuectl list --state failed
 ```
 
-### DLQ commands
+```bash
+queuectl list --state dead
+```
+
+---
+
+## Dead Letter Queue
+
+List DLQ
+
 ```bash
 queuectl dlq list
+```
+
+Retry a job
+
+```bash
 queuectl dlq retry job3
 ```
 
-### Configuration
+---
+
+## Configuration
+
+Maximum retries
+
 ```bash
 queuectl config set max-retries 5
+```
+
+Backoff base
+
+```bash
 queuectl config set backoff-base 3
 ```
 
-## Architecture Overview
-- Picocli handles the CLI layer.
-- Spring Boot provides dependency injection and application wiring.
-- H2 stores jobs and configuration persistently.
-- Workers claim jobs using locking to avoid duplicate processing.
-- Failed jobs are retried with exponential backoff and moved to DLQ after max retries.
+---
 
-## Testing Instructions
-To manually verify the core flow locally:
-1. Enqueue a successful job.
-2. Enqueue a failing job.
-3. Start one or more workers.
-4. Check `status`, `list`, and `dlq list`.
-5. Retry a DLQ job with `dlq retry`.
+# Job Lifecycle
 
-## Notes
-- This project is a CLI tool, not a web application.
-- A GUI is not required for the assignment.
+```
+Pending
+    │
+    ▼
+Processing
+    │
+ ┌──┴────────────┐
+ │               │
+ ▼               ▼
+Completed      Failed
+                  │
+                  ▼
+           Retry Available
+                  │
+                  ▼
+            Exponential
+             Backoff
+                  │
+                  ▼
+            Processing
+                  │
+                  ▼
+        Max Retries Exceeded
+                  │
+                  ▼
+          Dead Letter Queue
+```
+
+---
+
+# Architecture
+
+```
+CLI (Picocli)
+      │
+      ▼
+Command Layer
+      │
+      ▼
+Service Layer
+      │
+      ▼
+Repository Layer
+      │
+      ▼
+ H2 Database
+```
+
+---
+
+# Worker Execution Flow
+
+1. Worker polls pending jobs.
+
+2. Claims a job using pessimistic locking.
+
+3. Executes the command.
+
+4. Marks the job completed on success.
+
+5. On failure
+
+- Increment attempts
+- Apply exponential backoff
+- Retry
+
+6. If retries exceed the configured limit
+
+- Move job to DLQ
+
+---
+
+# Persistence
+
+QueueCTL stores
+
+- Jobs
+- Worker configuration
+- Retry configuration
+
+using an embedded H2 database.
+
+All data survives application restarts.
+
+---
+
+# Assumptions
+
+- Java 17 is installed.
+- H2 database is stored locally.
+- Commands are executed using the host operating system shell.
+- Worker stop uses a database flag for graceful shutdown.
+
+---
+
+# Testing
+
+Run tests
+
+```bash
+mvn test
+```
+
+or
+
+```bash
+./mvnw test
+```
+
+The project contains unit tests covering
+
+- Job enqueue
+- Worker execution
+- Retry logic
+- Dead Letter Queue
+
+---
+
+# Demo
+
+A short CLI demonstration video is available here:
+
+```
+<Add Google Drive Link Here>
+```
+
+---
+
+# Future Improvements
+
+- Job priorities
+- Scheduled jobs
+- Job timeout support
+- Metrics dashboard
+- REST API
+- Docker support
+
+---
+
+# Author
+
+**Aditya Bhardwaj**
+
+GitHub
+
+https://github.com/Aditya-Bhardwaj022
+
+---
