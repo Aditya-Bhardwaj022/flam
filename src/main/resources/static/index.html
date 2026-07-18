@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en" class="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QueueCTL Dashboard</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        border: "hsl(214.3 31.8% 91.4%)",
+                        input: "hsl(214.3 31.8% 91.4%)",
+                        ring: "hsl(222.2 84% 4.9%)",
+                        background: "hsl(0 0% 100%)",
+                        foreground: "hsl(222.2 84% 4.9%)",
+                        primary: {
+                            DEFAULT: "hsl(222.2 47.4% 11.2%)",
+                            foreground: "hsl(210 40% 98%)",
+                        },
+                        secondary: {
+                            DEFAULT: "hsl(210 40% 96.1%)",
+                            foreground: "hsl(222.2 47.4% 11.2%)",
+                        },
+                        destructive: {
+                            DEFAULT: "hsl(0 84.2% 60.2%)",
+                            foreground: "hsl(210 40% 98%)",
+                        },
+                        muted: {
+                            DEFAULT: "hsl(210 40% 96.1%)",
+                            foreground: "hsl(215.4 16.3% 46.9%)",
+                        },
+                        accent: {
+                            DEFAULT: "hsl(210 40% 96.1%)",
+                            foreground: "hsl(222.2 47.4% 11.2%)",
+                        },
+                        popover: {
+                            DEFAULT: "hsl(0 0% 100%)",
+                            foreground: "hsl(222.2 84% 4.9%)",
+                        },
+                        card: {
+                            DEFAULT: "hsl(0 0% 100%)",
+                            foreground: "hsl(222.2 84% 4.9%)",
+                        },
+                    },
+                    borderRadius: {
+                        lg: "0.5rem",
+                        md: "calc(0.5rem - 2px)",
+                        sm: "calc(0.5rem - 4px)",
+                    },
+                }
+            }
+        }
+    </script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+    </style>
+</head>
+<body class="bg-slate-50 text-foreground antialiased min-h-screen flex flex-col p-8">
+
+    <div class="max-w-6xl mx-auto w-full space-y-8">
+        <!-- Header -->
+        <header class="flex items-center justify-between">
+            <div class="flex items-center space-x-2">
+                <i data-lucide="layers" class="h-6 w-6"></i>
+                <h1 class="text-2xl font-bold tracking-tight">QueueCTL</h1>
+            </div>
+            <div class="flex items-center space-x-4">
+                <div id="worker-status-badge" class="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-secondary text-secondary-foreground">
+                    <i data-lucide="loader-2" class="h-3 w-3 mr-1 animate-spin"></i> Checking...
+                </div>
+                <button id="toggle-worker-btn" class="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 h-10 px-4 py-2 bg-primary text-primary-foreground hover:bg-primary/90">
+                    <i data-lucide="power" class="h-4 w-4 mr-2"></i>
+                    Start Workers
+                </button>
+            </div>
+        </header>
+
+        <main class="space-y-6">
+            <!-- Stats -->
+            <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                <div class="rounded-xl border bg-card text-card-foreground shadow-sm">
+                    <div class="p-6 flex flex-row items-center justify-between space-y-0 pb-2">
+                        <h3 class="tracking-tight text-sm font-medium">Pending Jobs</h3>
+                        <i data-lucide="clock" class="h-4 w-4 text-muted-foreground"></i>
+                    </div>
+                    <div class="p-6 pt-0">
+                        <div class="text-2xl font-bold" id="stat-pending">0</div>
+                    </div>
+                </div>
+                <div class="rounded-xl border bg-card text-card-foreground shadow-sm">
+                    <div class="p-6 flex flex-row items-center justify-between space-y-0 pb-2">
+                        <h3 class="tracking-tight text-sm font-medium">Running Jobs</h3>
+                        <i data-lucide="play-circle" class="h-4 w-4 text-muted-foreground"></i>
+                    </div>
+                    <div class="p-6 pt-0">
+                        <div class="text-2xl font-bold" id="stat-running">0</div>
+                    </div>
+                </div>
+                <div class="rounded-xl border bg-card text-card-foreground shadow-sm">
+                    <div class="p-6 flex flex-row items-center justify-between space-y-0 pb-2">
+                        <h3 class="tracking-tight text-sm font-medium">Completed Jobs</h3>
+                        <i data-lucide="check-circle-2" class="h-4 w-4 text-muted-foreground"></i>
+                    </div>
+                    <div class="p-6 pt-0">
+                        <div class="text-2xl font-bold" id="stat-completed">0</div>
+                    </div>
+                </div>
+                <div class="rounded-xl border bg-card text-card-foreground shadow-sm">
+                    <div class="p-6 flex flex-row items-center justify-between space-y-0 pb-2">
+                        <h3 class="tracking-tight text-sm font-medium">Failed (DLQ)</h3>
+                        <i data-lucide="alert-circle" class="h-4 w-4 text-muted-foreground"></i>
+                    </div>
+                    <div class="p-6 pt-0">
+                        <div class="text-2xl font-bold" id="stat-failed">0</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action Area -->
+            <div class="rounded-xl border bg-card text-card-foreground shadow-sm">
+                <div class="flex flex-col space-y-1.5 p-6">
+                    <h3 class="font-semibold leading-none tracking-tight">Enqueue New Job</h3>
+                    <p class="text-sm text-muted-foreground">Submit a new command to be processed by the background workers.</p>
+                </div>
+                <div class="p-6 pt-0">
+                    <form id="enqueue-form" class="flex flex-col md:flex-row gap-4 items-end">
+                        <div class="space-y-2 flex-1">
+                            <label class="text-sm font-medium leading-none" for="job-id">Job ID</label>
+                            <input class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2" id="job-id" placeholder="e.g. backup-job-1" required>
+                        </div>
+                        <div class="space-y-2 flex-1">
+                            <label class="text-sm font-medium leading-none" for="job-cmd">Command</label>
+                            <input class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2" id="job-cmd" placeholder="e.g. echo 'Hello World'" required>
+                        </div>
+                        <button type="submit" class="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 h-10 px-4 py-2 bg-primary text-primary-foreground hover:bg-primary/90">
+                            <i data-lucide="plus" class="h-4 w-4 mr-2"></i>
+                            Enqueue
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Settings Area -->
+            <div class="rounded-xl border bg-card text-card-foreground shadow-sm">
+                <div class="flex flex-col space-y-1.5 p-6">
+                    <h3 class="font-semibold leading-none tracking-tight">Configuration Settings</h3>
+                    <p class="text-sm text-muted-foreground">Manage dynamic system configurations.</p>
+                </div>
+                <div class="p-6 pt-0">
+                    <form id="settings-form" class="flex flex-col md:flex-row gap-4 items-end">
+                        <div class="space-y-2 flex-1">
+                            <label class="text-sm font-medium leading-none" for="config-max-retries">Max Retries</label>
+                            <input type="number" class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2" id="config-max-retries" placeholder="e.g. 3" required>
+                        </div>
+                        <div class="space-y-2 flex-1">
+                            <label class="text-sm font-medium leading-none" for="config-backoff-base">Backoff Base (seconds)</label>
+                            <input type="number" class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2" id="config-backoff-base" placeholder="e.g. 2" required>
+                        </div>
+                        <button type="submit" class="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 h-10 px-4 py-2 bg-secondary text-secondary-foreground hover:bg-secondary/80">
+                            <i data-lucide="save" class="h-4 w-4 mr-2"></i>
+                            Save Config
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Table Area -->
+            <div class="rounded-xl border bg-card text-card-foreground shadow-sm">
+                <div class="flex flex-col space-y-1.5 p-6">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h3 class="font-semibold leading-none tracking-tight">Recent Jobs</h3>
+                            <p class="text-sm text-muted-foreground mt-1.5">View and manage the background jobs in the system.</p>
+                        </div>
+                        <select id="job-filter" class="flex h-10 w-[180px] items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2">
+                            <option value="">All States</option>
+                            <option value="pending">Pending</option>
+                            <option value="running">Running</option>
+                            <option value="completed">Completed</option>
+                            <option value="failed">Failed</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="p-6 pt-0">
+                    <div class="relative w-full overflow-auto">
+                        <table class="w-full caption-bottom text-sm" id="jobs-table">
+                            <thead class="[&_tr]:border-b">
+                                <tr class="border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted">
+                                    <th class="h-12 px-4 text-left align-middle font-medium text-muted-foreground">Job ID</th>
+                                    <th class="h-12 px-4 text-left align-middle font-medium text-muted-foreground">Command</th>
+                                    <th class="h-12 px-4 text-left align-middle font-medium text-muted-foreground">Status</th>
+                                    <th class="h-12 px-4 text-left align-middle font-medium text-muted-foreground">Attempts</th>
+                                    <th class="h-12 px-4 text-left align-middle font-medium text-muted-foreground">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody class="[&_tr:last-child]:border-0" id="jobs-tbody">
+                                <!-- Populated dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
